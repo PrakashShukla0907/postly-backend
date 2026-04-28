@@ -1,0 +1,124 @@
+// Postly - Prisma Schema
+// Using SQLite for local development (no Docker needed)
+// Switch datasource to postgresql for production
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  name            String
+  bio             String?
+  defaultTone     String    @default("professional") @map("default_tone")
+  defaultLanguage String    @default("en") @map("default_language")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  refreshTokens       RefreshToken[]
+  socialAccounts      SocialAccount[]
+  aiKeys              AiKey?
+  posts               Post[]
+  telegramMappings    TelegramChatMapping[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model SocialAccount {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  platform        String    // twitter, linkedin, instagram, threads
+  handle          String
+  accessTokenEnc  String    @map("access_token_enc")
+  refreshTokenEnc String?   @map("refresh_token_enc")
+  tokenExpiresAt  DateTime? @map("token_expires_at")
+  connectedAt     DateTime  @default(now()) @map("connected_at")
+  disconnectedAt  DateTime? @map("disconnected_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@map("social_accounts")
+}
+
+model AiKey {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  openaiKeyEnc    String?  @map("openai_key_enc")
+  anthropicKeyEnc String?  @map("anthropic_key_enc")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_keys")
+}
+
+model Post {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  idea        String
+  postType    String    @map("post_type") // announcement, thread, story, promotional, educational, opinion
+  tone        String
+  language    String    @default("en")
+  modelUsed   String    @map("model_used") // openai, anthropic
+  status      String    @default("queued") // queued, publishing, published, partial, failed, cancelled
+  createdAt   DateTime  @default(now()) @map("created_at")
+  publishAt   DateTime  @default(now()) @map("publish_at")
+  publishedAt DateTime? @map("published_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platformPosts PlatformPost[]
+
+  @@map("posts")
+}
+
+model PlatformPost {
+  id             String    @id @default(uuid())
+  postId         String    @map("post_id")
+  platform       String    // twitter, linkedin, instagram, threads
+  content        String
+  status         String    @default("queued") // queued, processing, published, failed, cancelled
+  publishedAt    DateTime? @map("published_at")
+  errorMessage   String?   @map("error_message")
+  attempts       Int       @default(0)
+  lastAttemptAt  DateTime? @map("last_attempt_at")
+  externalPostId String?   @map("external_post_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("platform_posts")
+}
+
+model TelegramChatMapping {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  telegramChatId String @unique @map("telegram_chat_id")
+  connectedAt  DateTime @default(now()) @map("connected_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_chat_mappings")
+}
