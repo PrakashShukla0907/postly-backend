@@ -45,7 +45,7 @@
     "anthropic",
     "queue"
   ],
-  "author": "Backend Team",
+  "author": "Prakash Shukla",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
@@ -99,10 +99,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/postly.git"
+    "url": "https://github.com/PrakashShukla0907/postly-backend.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/postly/issues"
+    "url": "https://github.com/PrakashShukla0907/postly-backend/issues"
   },
-  "homepage": "https://github.com/yourusername/postly#readme"
+  "homepage": "https://github.com/PrakashShukla0907/postly-backend#readme"
 }
