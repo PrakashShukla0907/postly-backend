@@ -1,0 +1,165 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: postly-db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postly
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d postly"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - postly-network
+
+  # Redis Cache & Message Queue
+  redis:
+    image: redis:7-alpine
+    container_name: postly-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - postly-network
+
+  # Node.js Application Server
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: postly-app
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://user:password@db:5432/postly
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_in_production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret_change_in_production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_WEBHOOK_URL: ${TELEGRAM_WEBHOOK_URL:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LOG_LEVEL: debug
+      LOG_FORMAT: text
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - postly-network
+    restart: unless-stopped
+
+  # Optional: Redis Commander (for Redis monitoring)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: postly-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - postly-network
+    restart: unless-stopped
+
+  # Optional: pgAdmin (for PostgreSQL management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: postly-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - postly-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  postly-network:
+    driver: bridge
+
+# ============================================
+# Usage Instructions
+# ============================================
+# Start services:
+#   docker-compose up -d
+#
+# View logs:
+#   docker-compose logs -f app
+#   docker-compose logs -f db
+#   docker-compose logs -f redis
+#
+# Stop services:
+#   docker-compose down
+#
+# Remove all data:
+#   docker-compose down -v
+#
+# Access services:
+#   API: http://localhost:3000
+#   Redis CLI: localhost:6379
+#   Redis Commander: http://localhost:8081
+#   pgAdmin: http://localhost:5050
+#   PostgreSQL: localhost:5432
+#
+# Database credentials (pgAdmin):
+#   Email: admin@admin.com
+#   Password: admin
+#
+# Database connection (pgAdmin):
+#   Host: db
+#   Port: 5432
+#   Username: user
+#   Password: password
+#   Database: postly
+#
+# Redis Commander:
+#   No authentication required (local only)
+#   Can view all Redis keys and data
+#
+# Command reference:
+#   docker-compose ps              # Show running containers
+#   docker-compose logs            # View all logs
+#   docker-compose restart         # Restart all services
+#   docker-compose down            # Stop and remove containers
+#   docker exec postly-app npm test # Run tests inside container
