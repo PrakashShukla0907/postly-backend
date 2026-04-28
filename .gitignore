@@ -39,6 +39,8 @@ coverage/
 *.sqlite
 *.sqlite3
 .prisma/
+!node_modules/@prisma/client
+!node_modules/.prisma
 local.db
 
 # Docker
