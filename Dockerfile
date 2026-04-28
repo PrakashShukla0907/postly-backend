@@ -4,6 +4,7 @@
 
 # Stage 1: Dependencies
 FROM node:18-alpine AS dependencies
+RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
@@ -11,6 +12,7 @@ RUN npm ci --only=production
 
 # Stage 2: Build
 FROM node:18-alpine AS build
+RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
@@ -20,6 +22,7 @@ RUN npm run build 2>/dev/null || true
 
 # Stage 3: Production
 FROM node:18-alpine
+RUN apk add --no-cache openssl
 
 # Security: Run as non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -28,7 +31,7 @@ RUN adduser -S nodejs -u 1001
 WORKDIR /app
 
 # Copy dependencies from stage 1
-COPY --from=dependencies /app/node_modules ./node_modules
+COPY --chown=nodejs:nodejs --from=dependencies /app/node_modules ./node_modules
 
 # Copy application code
 COPY --chown=nodejs:nodejs . .
