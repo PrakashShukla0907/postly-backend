@@ -116,9 +116,9 @@ const PORT = parseInt(process.env.PORT || "3000");
 const server = createServer(app);
 
 if (process.env.NODE_ENV !== "test") {
- server.listen(PORT, () => {
- logger.info(` Postly server running on http://localhost:${PORT}`);
- logger.info(` Health check: http://localhost:${PORT}/api/health`);
+ server.listen(PORT, "0.0.0.0", () => {
+ logger.info(` Postly server running on port ${PORT}`);
+ logger.info(` Health check: http://0.0.0.0:${PORT}/api/health`);
  logger.info(` Environment: ${process.env.NODE_ENV || "development"}`);
 
  // Start queue workers (no-op if Redis unavailable)
