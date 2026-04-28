@@ -1,0 +1,108 @@
+{
+  "name": "postly-backend",
+  "version": "1.0.0",
+  "description": "Multi-platform AI content publishing engine backend API",
+  "main": "src/index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "build": "echo 'Build step for TypeScript (if used)' && exit 0",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --testTimeout=10000",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "lint": "eslint src/ --max-warnings=0",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --check src/",
+    "format:fix": "prettier --write src/",
+    "migrate": "prisma migrate deploy",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:reset": "prisma migrate reset --force",
+    "db:push": "prisma db push",
+    "db:reset": "prisma migrate reset --force && npm run seed",
+    "seed": "node src/database/seed.js",
+    "docker:build": "docker build -t postly:latest .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f app",
+    "debug:env": "node -e \"console.log(process.env)\"",
+    "generate:key": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+    "postinstall": "prisma generate"
+  },
+  "keywords": [
+    "api",
+    "backend",
+    "telegram",
+    "content-generation",
+    "social-media",
+    "publishing",
+    "ai",
+    "openai",
+    "anthropic",
+    "queue"
+  ],
+  "author": "Backend Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "compression": "^1.7.4",
+    "uuid": "^9.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "crypto-js": "^4.1.0",
+    "@prisma/client": "^5.1.0",
+    "prisma": "^5.1.0",
+    "redis": "^4.6.10",
+    "ioredis": "^5.3.2",
+    "bullmq": "^4.10.0",
+    "telegram": "^2.20.0",
+    "grammy": "^1.20.0",
+    "openai": "^4.28.0",
+    "@anthropic-ai/sdk": "^0.39.0",
+    "axios": "^1.6.0",
+    "joi": "^17.11.0",
+    "winston": "^3.11.0",
+    "morgan": "^1.10.0",
+    "express-rate-limit": "^7.0.0",
+    "pg": "^8.11.0",
+    "sequelize": "^6.33.0",
+    "nodemailer": "^6.9.5",
+    "moment": "^2.29.4",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "@testing-library/jest-dom": "^6.1.4",
+    "nodemon": "^3.0.1",
+    "eslint": "^8.50.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.29.0",
+    "prettier": "^3.0.3",
+    "@types/jest": "^29.5.5",
+    "dotenv-cli": "^7.3.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "globalSetup": "./tests/setup.js",
+    "transform": {},
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/postly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/postly/issues"
+  },
+  "homepage": "https://github.com/yourusername/postly#readme"
+}
