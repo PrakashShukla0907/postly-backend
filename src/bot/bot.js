@@ -8,6 +8,11 @@ import { publishPost } from "../services/publishService.js";
 
 let bot = null;
 
+// Returns the already-initialized singleton bot instance
+export function getBot() {
+  return bot;
+}
+
 // ── Redis Session Storage ─────────────────────────────────────────────────────
 function createRedisSessionStorage(redis) {
   if (!redis) {
@@ -485,15 +490,15 @@ export async function startBot(redisClient = null) {
   const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL;
 
   if (webhookUrl) {
-    // Webhook mode (production)
+    // Webhook mode (production) — initialize bot info so handleUpdate works
+    await b.init();
     logger.info(`Telegram bot using webhook: ${webhookUrl}`);
-    // Webhook is set up externally via /api/telegram/webhook route
     return b;
   } else {
     // Polling mode (development)
     try {
       await b.start({
-        onStart: (info) => logger.info(`🤖 Telegram bot @${info.username} started (polling mode)`),
+        onStart: (info) => logger.info(`Bot @${info.username} started (polling mode)`),
       });
     } catch (err) {
       logger.error(`Failed to start Telegram bot: ${err.message}`);

@@ -1,2 +1,2 @@
 // Telegram bot entry point
-export { createBot, startBot } from "./bot.js";
+export { createBot, startBot, getBot } from "./bot.js";

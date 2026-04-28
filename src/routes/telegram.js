@@ -22,11 +22,12 @@ router.post("/webhook", async (req, res) => {
 
   // The bot instance processes the update
   try {
-    // Dynamic import to avoid loading bot if token not set
-    const { createBot } = await import("../bot/index.js");
-    const bot = createBot();
+    const { getBot } = await import("../bot/index.js");
+    const bot = getBot();
     if (bot) {
       await bot.handleUpdate(req.body);
+    } else {
+      logger.warn("Webhook received but bot is not initialized yet");
     }
     res.json({ ok: true });
   } catch (err) {
