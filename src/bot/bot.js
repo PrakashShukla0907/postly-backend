@@ -71,9 +71,9 @@ function platformKeyboard(selected = []) {
 
 function toneKeyboard() {
   return new InlineKeyboard()
-    .text("🎨 Creative", "tone:creative").text("💼 Professional", "tone:professional").row()
-    .text("😏 Sarcastic", "tone:sarcastic").text("😄 Humorous", "tone:humorous").row()
-    .text("ℹ️ Informative", "tone:informative").text("🤝 Friendly", "tone:friendly");
+    .text("💼 Professional", "tone:professional").text("👕 Casual", "tone:casual").row()
+    .text("🧠 Witty", "tone:witty").text("🏛️ Authoritative", "tone:authoritative").row()
+    .text("🤝 Friendly", "tone:friendly");
 }
 
 function modelKeyboard() {
@@ -107,8 +107,9 @@ function formatPreview(generated) {
   let text = "📝 *Content Preview:*\n\n";
   for (const [platform, data] of Object.entries(generated)) {
     const icon = { twitter: "🐦", linkedin: "💼", instagram: "📸", threads: "🧵" }[platform] || "📌";
-    text += `${icon} *${platform.charAt(0).toUpperCase() + platform.slice(1)}* (${data.char_count} chars):\n`;
-    text += `${data.content}\n`;
+    const label = platform === "twitter" ? "Twitter/X" : platform.charAt(0).toUpperCase() + platform.slice(1);
+    text += `${icon} *${label}* (${data.char_count} chars):\n`;
+    text += `"${data.content}"\n`;
     if (data.hashtags?.length) {
       text += `_${data.hashtags.join(" ")}_\n`;
     }
@@ -116,6 +117,27 @@ function formatPreview(generated) {
   }
   return text;
 }
+
+// ── Bot Error Formatter ───────────────────────────────────────────────────────
+function formatBotError(err) {
+  const msg = err.message || "";
+  
+  if (msg.includes("quota") || msg.includes("billing") || msg.includes("credit balance")) {
+    return (
+      "💳 *API Quota Exceeded*\n\n" +
+      "The AI model (OpenAI/Anthropic) returned a quota or billing error. " +
+      "Please check your API key's credit balance or billing details.\n\n" +
+      "💡 *Tip:* You can link a different API key using Postman to try another model."
+    );
+  }
+
+  if (msg.includes("invalid_request_error")) {
+    return "⚠️ *Invalid Request*\n\nThe AI provider rejected the request format. Please try shortening your idea.";
+  }
+
+  return `❌ *Action Failed*\n\n${msg}`;
+}
+
 
 // ── Create bot instance ───────────────────────────────────────────────────────
 export function createBot(redisClient = null) {
@@ -361,7 +383,7 @@ export function createBot(redisClient = null) {
       await ctx.answerCallbackQuery();
       await ctx.editMessageText(
         `✅ AI Model: *${model === "openai" ? "GPT-4o (OpenAI)" : "Claude Sonnet (Anthropic)"}*\n\n` +
-        "Tell me the idea or core message — keep it brief (max 500 characters).",
+        "Tell me the idea or core message — keep it brief.",
         { parse_mode: "Markdown" }
       );
       return;
@@ -393,7 +415,8 @@ export function createBot(redisClient = null) {
       } catch (err) {
         logger.error(`Bot publish error: ${err.message}`);
         await ctx.editMessageText(
-          `❌ Failed to publish: ${err.message}\n\nPlease try again with /post`
+          formatBotError(err) + "\n\nUse /post to try again.",
+          { parse_mode: "Markdown" }
         );
         ctx.session.step = null;
         ctx.session.data = {};
@@ -470,7 +493,8 @@ export function createBot(redisClient = null) {
       ctx.session.step = "idea";
 
       await ctx.reply(
-        `❌ Content generation failed: ${err.message}\n\nPlease try again or use /cancel to abort.`
+        formatBotError(err) + "\n\n_Please try again or use /cancel to abort._",
+        { parse_mode: "Markdown" }
       );
     }
   });
