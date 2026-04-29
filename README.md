@@ -3,7 +3,13 @@
 **Telegram Bot**: [@postly_ai_prakash_bot](https://t.me/postly_ai_prakash_bot)
 
 Postly is a production-ready backend engine that enables users to publish content to multiple social platforms simultaneously through a conversational Telegram bot interface. 
+
+## Demo
+
+[![Postly Demo](https://cdn.loom.com/sessions/thumbnails/2311a20421a8496d9313304d4b4c2345-with-play.gif)](https://www.loom.com/share/2311a20421a8496d9313304d4b4c2345)
+
 ---
+
 
 ## API Documentation & Endpoints
 
