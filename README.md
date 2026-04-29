@@ -1,5 +1,6 @@
 # Postly - AI Content Publishing Engine 
-**Live Base URL**: `https://postly-backend-production-8277.up.railway.app` 
+**Live Base URL**: [https://postly-backend-production-8277.up.railway.app](https://postly-backend-production-8277.up.railway.app)
+**Telegram Bot**: [@postly_ai_prakash_bot](https://t.me/postly_ai_prakash_bot)
 
 Postly is a production-ready backend engine that enables users to publish content to multiple social platforms simultaneously through a conversational Telegram bot interface. 
 ---
@@ -7,6 +8,8 @@ Postly is a production-ready backend engine that enables users to publish conten
 ## API Documentation & Endpoints
 
 All REST API routes, schemas, and endpoint definitions are thoroughly documented in **[API_DOCS.md](./API_DOCS.md)**.
+
+The API is accessible at: `https://postly-backend-production-8277.up.railway.app/api`
 
 ---
 
@@ -20,8 +23,8 @@ You can spin up the entire architecture locally (including PostgreSQL and Redis)
 
 ### 1. Clone & Setup
 ```bash
-git clone https://github.com/yourusername/postly.git
-cd postly
+git clone https://github.com/PrakashShukla0907/postly-backend.git
+cd postly-backend
 npm install
 ```
 
@@ -62,6 +65,8 @@ You must configure the `.env` file for the application to function. A fully docu
 
 ## Telegram Bot Setup Instructions
 
+**Bot Link**: [t.me/postly_ai_prakash_bot](https://t.me/postly_ai_prakash_bot)
+
 To interface with the backend, you must create a Telegram Bot.
 
 1. **Get your Token**:
@@ -74,7 +79,7 @@ To interface with the backend, you must create a Telegram Bot.
   - When you run `npm run dev`, the bot will automatically start in long-polling mode, making it instantly responsive on your local machine.
 
 3. **Configure Production (Webhook)**:
-  - Once deployed to Railway, set your `TELEGRAM_WEBHOOK_URL` environment variable to `https://<your-railway-domain>/api/telegram/webhook`.
+  - Once deployed to Railway, set your `TELEGRAM_WEBHOOK_URL` environment variable to `https://postly-backend-production-8277.up.railway.app/api/telegram/webhook`.
   - The backend will automatically inform Telegram to switch from polling to sending HTTP POST requests to your live URL.
 
 ---

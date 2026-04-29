@@ -9,28 +9,30 @@ This document details the architectural decisions, database schemas, and enginee
 Postly operates on a layered micro-service-like architecture within a monolith, strictly separating concerns between the presentation layer (Telegram/API), the business logic (Services), and asynchronous background workers (BullMQ).
 
 ```text
-User (Telegram)
+User (Telegram/API)
    ↓
-[Telegram Bot API]
+[Telegram Bot API / Express API]
    ↓
-(Webhook / Polling)
+(Webhook / REST)
    ↓
 +-------------------------------------------------------+
 | POSTLY EXPRESS SERVER                |
 |                            |
 | 1. Bot Router (Handles /start, /post)        |
-| 2. Redis Session Middleware (Checks auth/state)   |
-| 3. ContentService (Calls OpenAI / Anthropic APIs)  |
-| 4. PublishService (Fans out jobs to queues)     |
+| 2. API Router (Handles REST endpoints)        |
+| 3. Redis Session Middleware (Checks auth/state)   |
+| 4. ContentService (Calls OpenAI / Anthropic APIs)  |
+| 5. PublishService (Fans out jobs to queues)     |
 +-------------------------------------------------------+
    ↓                   ↓
 [PostgreSQL DB]            [Redis Queue]
 (Stores Users, encrypted        (Stores Jobs & Bot State)
- keys, and Post status)           ↓
+  keys, and Post status)           ↓
                     +------------------+
                     | BullMQ Workers  |
                     | - Twitter Queue |
                     | - LinkedIn Queue |
+                    | - Instagram Queue|
                     | - Threads Queue |
                     +------------------+
                         ↓
@@ -41,11 +43,11 @@ User (Telegram)
 
 ## How a Post Flows (The Lifecycle)
 
-1. **Telegram Trigger**: The user sends `/post` to the bot.
-2. **State Management**: The bot asks for the platform and topic. Each step is temporarily saved in Redis.
-3. **AI Generation**: Once the prompt is complete, `ContentService` decrypts the user's AI keys (AES-256) from PostgreSQL, selects the chosen model (GPT-4o or Claude), and requests platform-optimized content.
+1. **Trigger**: The user sends `/post` to the bot or makes a `POST` request to `/api/posts/publish`.
+2. **State Management**: For the bot, each step is temporarily saved in Redis. For the API, the request is validated and processed immediately.
+3. **AI Generation**: If requested, `ContentService` decrypts the user's AI keys (AES-256-GCM) from PostgreSQL, selects the chosen model (GPT-4o or Claude 3.5 Sonnet), and requests platform-optimized content.
 4. **Queue Fanning**: `PublishService` creates a master `Post` record in the database. Instead of one massive job, it creates **independent BullMQ jobs** for each requested platform (e.g., `twitter-queue`, `linkedin-queue`) and corresponding `platform_posts` rows.
-5. **Worker Execution**: Background workers pick up the jobs, execute the actual HTTP calls to the external Social APIs, and update the database row to `published` or `failed`.
+5. **Worker Execution**: Background workers pick up the jobs, execute the actual HTTP calls to the external Social APIs (Twitter, LinkedIn, Instagram, Threads), and update the database row to `published` or `failed`.
 
 ---
 
@@ -58,8 +60,10 @@ The `grammY` bot framework manages multi-step conversations statelessly. When a 
 
 ## Handling Partial Failures
 
-Publishing to multiple external APIs is highly volatile due to rate limits and network latency. By **fanning out** jobs (creating one BullMQ job per platform), we achieve perfect isolation. - If Twitter's API goes down, the `twitter-queue` job fails and enters our custom exponential backoff retry loop (`1s -> 5s -> 25s`).
-- Meanwhile, the `linkedin-queue` job executes completely unaffected. - The user's dashboard will reflect Twitter as `pending` or `failed` and LinkedIn as `published`.
+Publishing to multiple external APIs is highly volatile due to rate limits and network latency. By **fanning out** jobs (creating one BullMQ job per platform), we achieve perfect isolation.
+- If Twitter's API goes down, the `twitter-queue` job fails and enters our custom exponential backoff retry loop (`1s -> 5s -> 25s`).
+- Meanwhile, the `linkedin-queue` job executes completely unaffected.
+- The user's dashboard will reflect Twitter as `pending` or `failed` and LinkedIn as `published`.
 
 ---
 
@@ -69,8 +73,9 @@ The PostgreSQL database is managed via Prisma.
 
 ### Core Tables
 - `users`: Identity and hashed passwords.
-- `social_accounts` & `ai_keys`: Encrypted OAuth tokens and API keys.
+- `social_accounts` & `ai_keys`: Encrypted OAuth tokens and API keys (AES-256-GCM).
 - `posts` (1) to `platform_posts` (Many): This relationship allows us to track the exact lifecycle of a single prompt across multiple platforms independently.
+- `telegram_chat_mappings`: Links Telegram chat IDs to user accounts.
 
 ### Indexing Strategy
 To ensure the dashboard API remains highly performant as users generate thousands of posts:
@@ -90,14 +95,15 @@ To ensure the dashboard API remains highly performant as users generate thousand
   - *Decision*: Used BullMQ (Redis) for job queuing instead of a managed cloud service.
   - *Trade-off*: We have to host and monitor Redis ourselves, but we gain incredible speed, local testability, and built-in exponential backoff logic without paying for AWS requests.
 
-3. **Military-Grade Encryption**
-  - *Decision*: User API keys are symmetrically encrypted (AES-256-GCM) in the database.
-  - *Trade-off*: Adds slight CPU overhead and complexity to the service layer, but protects user data if the database is compromised.
+3. **GCM Mode Encryption**
+  - *Decision*: User API keys are symmetrically encrypted using AES-256-GCM in the database.
+  - *Trade-off*: Adds slight CPU overhead and complexity to the service layer, but protects user data if the database is compromised, ensuring both confidentiality and integrity.
 
 ---
 
 ## Known Issues & Limitations
 
-1. **OAuth Redirects**: Currently, social accounts are linked by manually POSTing tokens via Postman. A full Next.js/React frontend is required to handle the actual OAuth 2.0 callback redirects from Twitter/LinkedIn.
-2. **Media Uploads**: The AI generation and queue systems only support text-based posts. Handling image/video binary streams would require implementing AWS S3 for temporary storage before queuing.
-3. **Bot Scaling**: The Telegram bot currently runs in the same Express process as the API. Under massive load, the bot webhook listener should be decoupled into its own microservice to prevent heavy API requests from delaying bot responses.
+1. **OAuth Redirects**: Currently, social accounts are linked by manually providing tokens. A full frontend is required to handle the actual OAuth 2.0 callback redirects from Twitter/LinkedIn.
+2. **Media Uploads**: The AI generation and queue systems currently focus on text-based posts. Handling image/video binary streams would require implementing S3-compatible storage.
+3. **Bot Scaling**: The Telegram bot currently runs in the same Express process. Under massive load, the bot webhook listener should be decoupled into its own microservice.
+ot responses.
