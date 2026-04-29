@@ -79,22 +79,32 @@ app.get("/api/health", (req, res) => {
 // ── Temporary Frontend Placeholder for Telegram Linking ───────────
 app.get("/auth/telegram", (req, res) => {
  const chatId = req.query.chat_id;
+ const baseUrl = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
  res.send(`
  <html>
- <body style="font-family: sans-serif; padding: 40px; text-align: center;">
- <h2> Postly Backend Mode</h2>
- <p>Since there is no frontend built yet, you cannot link automatically.</p>
- <p>Please open Postman and make a <b>POST</b> request to <code>http://localhost:3000/api/telegram/link</code></p>
- <p>With this JSON body:</p>
- <pre style="background: #eee; padding: 10px; display: inline-block; text-align: left;">
-{
- "telegram_chat_id": "${chatId}"
-}
- </pre>
+ <head><title>Postly — Link Telegram Account</title></head>
+ <body style="font-family: sans-serif; padding: 40px; text-align: center; background: #f5f5f5;">
+ <h2>🔗 Link Your Telegram Account</h2>
+ <p>Your Telegram Chat ID: <strong>${chatId}</strong></p>
+ <p>Step 1 — Register or Login via Postman to get your Bearer token:</p>
+ <pre style="background: #222; color: #0f0; padding: 12px; display: inline-block; text-align: left; border-radius: 6px;">
+POST ${baseUrl}/api/auth/login
+Content-Type: application/json
+
+{ "email": "you@email.com", "password": "yourpassword" }</pre>
+ <p>Step 2 — Link your Telegram account using the token from Step 1:</p>
+ <pre style="background: #222; color: #0f0; padding: 12px; display: inline-block; text-align: left; border-radius: 6px;">
+POST ${baseUrl}/api/telegram/link
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{ "telegram_chat_id": "${chatId}" }</pre>
+ <p>After linking, go back to Telegram and send <strong>/start</strong></p>
  </body>
  </html>
  `);
 });
+
 
 // ── API Routes ─────────────────────────────────────────────────────────
 app.use("/api", apiRouter);
