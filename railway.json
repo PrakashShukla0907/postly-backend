@@ -5,7 +5,8 @@
     "buildCommand": "npm ci && npx prisma generate"
   },
   "deploy": {
-    "startCommand": "node_modules/.bin/prisma migrate deploy && npm start",
+    "preDeployCommand": "npx prisma migrate deploy",
+    "startCommand": "npm start",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
