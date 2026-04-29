@@ -122,11 +122,11 @@ if (process.env.NODE_ENV !== "test") {
  logger.info(` Environment: ${process.env.NODE_ENV || "development"}`);
 
  // Start queue workers (no-op if Redis unavailable)
- startWorkers();
+ try { startWorkers(); } catch (e) { logger.error(`Workers failed: ${e.message}`); }
 
  // Start Telegram bot (no-op if token not set)
  if (process.env.TELEGRAM_BOT_TOKEN) {
- startBot();
+ startBot().catch((e) => logger.error(`Bot init failed: ${e.message}`));
  }
  });
 }
@@ -143,8 +143,12 @@ const shutdown = (signal) => {
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("unhandledRejection", (reason) => {
+process.on("unhandledRejection", (reason, promise) => {
  logger.error(`Unhandled rejection: ${reason}`);
+ // Prevent Node.js 15+ from terminating on unhandled rejections
+});
+process.on("uncaughtException", (err) => {
+ logger.error(`Uncaught exception: ${err.message}`);
 });
 
 export default app;
